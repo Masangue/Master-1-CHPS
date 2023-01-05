@@ -90,4 +90,7 @@ run_tpPoisson1D_direct:
 	bin/tpPoisson1D_direct
 
 clean:
-	rm *.o bin/*
+	rm obj/* bin/*
+
+cleandata:
+	rm *.dat

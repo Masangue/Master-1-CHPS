@@ -5,19 +5,85 @@
 /**********************************************/
 #include "lib_poisson1D.h"
 
-void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv){
+/*
+    Remplir le tableau 1D correspondant à la matrice poisson1D en general band, priorité colonne
+*/
+void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
+{
+    int col;
+    for (int ii=0;ii<(*la);ii++)
+    {
+        col = ii*(*lab);
+        for (int jj=0;jj<(*kv);jj++)
+        {
+            AB[col + jj] = 0.0;
+        }
+        AB[col + (*kv)]     = -1.0;
+        AB[col + (*kv) + 1] = 2.0;
+        AB[col + (*kv) + 2] = -1.0;
+    }
+    AB[*kv] = 0.0;
+    AB[(*lab)*(*la)-1] = 0.0;
 }
 
-void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv){
+/*
+    Remplir le tableau 1D correspondant à la matrice identite en general band, priorité colonne
+*/
+void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv)
+{
+    int col;
+    for (int ii=0;ii<(*la);ii++)
+    {
+        col = ii*(*lab);
+        for (int jj=0;jj<(*kv);jj++)
+        {
+            AB[col + jj] = 0.0;
+        }
+        AB[col + (*kv)]     = 0.0;
+        AB[col + (*kv) + 1] = 1.0;
+        AB[col + (*kv) + 2] = 0.0;
+    }
 }
 
-void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1){
+/*
+    Initialiser le vecteur RHS à 0 sauf aux extrémités qui valent les conditions aux limites BC0 et BC1
+*/
+void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
+{
+    RHS[0] = *BC0;
+    RHS[(*la)-1] = *BC1;
+
+    for (int ii=1;ii<(*la)-1;ii++)
+    {
+        RHS[ii] = 0.0;
+    }
 }  
 
-void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1){
+/*
+    Le sujet donne comme solution analytique T(x) = T0 + x(T1-T0)
+*/
+void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1)
+{
+    
+    double f_diff = (*BC1)-(*BC0);
+  
+    for (int ii=0;ii<(*la);ii++)
+    {
+        EX_SOL[ii] = (*BC0) + f_diff*X[ii];
+    }
 }  
 
-void set_grid_points_1D(double* x, int* la){
+/*
+    Initialiser le vecteur X avec les points de discrétisation
+*/
+void set_grid_points_1D(double* x, int* la)
+{
+  int n = (*la)+1;
+
+  for (int ii=0;ii<(*la);ii++)
+  {
+      x[ii] = (ii+1.0)/n;
+  }
 }
 
 void write_GB_operator_rowMajor_poisson1D(double* AB, int* lab, int* la, char* filename){
@@ -113,8 +179,20 @@ void write_xy(double* vec, double* x, int* la, char* filename){
 }  
 
 int indexABCol(int i, int j, int *lab){
-  return 0;
+  return i*(*lab)+j;
 }
-int dgbtrftridiag(int *la, int*n, int *kl, int *ku, double *AB, int *lab, int *ipiv, int *info){
-  return *info;
+
+/*
+    Factorisation LU de la matrice tridiagonale AB
+    @param ipiv : vecteur des pivots, mit à ipiv[i] = i+1 pour dgbtrs
+*/
+int dgbtrftridiag(int *la, int *n, int *kl, int *ku, double *AB, int *lab, int *ipiv, int *info)
+{
+    ipiv[0] = 1;
+    for (int ii=1;ii<(*n);ii++)
+    {
+      AB[ii*(*lab)+2] -= (AB[(ii-1)*(*lab)+3]*AB[ii*(*lab)+1]) / AB[(ii-1)*(*lab)+2];
+      AB[(ii-1)*(*lab)+3] /= AB[(ii-1)*(*lab)+2];
+      ipiv[ii] = ii+1;
+    }
 }
