@@ -10,11 +10,8 @@ int main(int argc,char *argv[])
 /* ** argc: Number of arguments */
 /* ** argv: Values of arguments */
 {
-  int ierr;
-  int jj;
   int nbpoints, la;
   int ku, kl, lab, kv;
-  int *ipiv;
   int info;
   int NRHS;
   double T0, T1;
@@ -24,7 +21,25 @@ int main(int argc,char *argv[])
   
   double temp, relres;
 
-  double opt_alpha;
+  double opt_alpha = 0;
+
+  int version = 1;
+  if (argc >= 2) {
+    if (strcmp(argv[1], "jacobi") == 0) {
+      version = 1;
+    } else if (strcmp(argv[1], "gauss_seidel") == 0) {
+      version = 2;
+    } else if (strcmp(argv[1], "richardson") == 0) {
+      version = 3;
+    } else {
+      printf("Usage: %s [jacobi|gauss_seidel|richardson]\n", argv[0]);
+      exit(1);
+    }
+  } else {
+    printf("Usage: %s [jacobi|gauss_seidel|richardson]\n", argv[0]);
+    exit(1);
+  }
+
 
   /* Size of the problem */
   NRHS=1;
@@ -63,11 +78,14 @@ int main(int argc,char *argv[])
   // write_GB_operator_colMajor_poisson1D(AB, &lab, &la, "AB.dat");
   
   /********************************************/
+  if (version ==3) {
+
   /* Solution (Richardson with optimal alpha) */
 
   /* Computation of optimum alpha */
-  opt_alpha = richardson_alpha_opt(&la);
-  printf("Optimal alpha for simple Richardson iteration is : %lf",opt_alpha); 
+      opt_alpha = richardson_alpha_opt(&la);
+      printf("Optimal alpha for simple Richardson iteration is : %lf",opt_alpha);
+  }
 
   /* Solve */
   double tol=1e-3;
@@ -77,27 +95,43 @@ int main(int argc,char *argv[])
 
   resvec=(double *) calloc(maxit, sizeof(double));
 
+  
+  if (version == 3) {
+
   /* Solve with Richardson alpha */
-  richardson_alpha(AB, RHS, SOL, &opt_alpha, &lab, &la, &ku, &kl, &tol, &maxit, resvec, &nbite);
+      richardson_alpha(AB, RHS, SOL, &opt_alpha, &lab, &la, &ku, &kl, &tol, &maxit, resvec, &nbite);
+  } else {
 
   /* Richardson General Tridiag */
 
   /* get MB (:=M, D for Jacobi, (D-E) for Gauss-seidel) */
-  kv = 1;
-  ku = 1;
-  kl = 1;
-  MB = (double *) malloc(sizeof(double)*(lab)*la);
-   extract_MB_jacobi_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
-  // extract_MB_gauss_seidel_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
+ 
+      MB = (double *) malloc(sizeof(double)*(lab)*la);
+      if (version == 1) {
+          printf("Proceed with Jacobi methode\n");
+          extract_MB_jacobi_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
+      } else if (version == 2) {
+          printf("Proceed with Gauss-Seidel methode\n");
+          extract_MB_gauss_seidel_tridiag(AB, MB, &lab, &la, &ku, &kl, &kv);
+      }
+
+      /* Solve with General Richardson */
+      richardson_MB(AB, RHS, SOL, MB, &lab, &la, &ku, &kl, &tol, &maxit, resvec, &nbite);
+  }
   
-  /* Solve with General Richardson */
-   richardson_MB(AB, RHS, SOL, MB, &lab, &la, &ku, &kl, &tol, &maxit, resvec, &nbite);
+  
   
   /* Write solution */
   write_vec(SOL, &la, "SOL.dat");
 
   /* Write convergence history */
   write_vec(resvec, &nbite, "RESVEC.dat");
+
+  double norm2_ex_sol = cblas_dnrm2(la, EX_SOL, 1);
+  cblas_daxpy(la, -1.0, EX_SOL, 1, SOL, 1);
+  double norm2_ex_sol_m_sol = cblas_dnrm2(la, SOL, 1);
+  double err = norm2_ex_sol_m_sol/norm2_ex_sol;
+
 
   free(resvec);
   free(RHS);
