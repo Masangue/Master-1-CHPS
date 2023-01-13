@@ -12,7 +12,7 @@ int main(int argc,char *argv[])
 {
     int version = 1;
 
-    if (argc == 2) {
+    if (argc >= 2) {
         if (strcmp(argv[1], "dgbtrf") == 0) {
             version = 1;
         } else if (strcmp(argv[1], "dgbtrftridiag") == 0) {
@@ -54,9 +54,9 @@ int main(int argc,char *argv[])
     set_dense_RHS_DBC_1D(RHS,&la,&T0,&T1);
     set_analytical_solution_DBC_1D(EX_SOL, X, &la, &T0, &T1);
     
-    write_vec(RHS, &la, "RHS.dat");
-    write_vec(EX_SOL, &la, "EX_SOL.dat");
-    write_vec(X, &la, "X_grid.dat");
+    //write_vec(RHS, &la, "RHS.dat");
+    //write_vec(EX_SOL, &la, "EX_SOL.dat");
+    //write_vec(X, &la, "X_grid.dat");
 
     kv=1;
     ku=1;

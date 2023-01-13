@@ -40,7 +40,8 @@ INCL= -I $(TPDIR)/include $(INCLATLAS)
 ############
 #
 OBJENV= obj/tp_env.o
-OBJTP2ITER= obj/lib_poisson1D.o obj/tp_poisson1D_iter.o
+OBJTEST= obj/test.o obj/lib_poisson1D.o
+OBJTP2ITER= obj/lib_poisson1D.o obj/tp_poisson1D_iter.o 
 OBJTP2DIRECT= obj/lib_poisson1D.o obj/tp_poisson1D_direct.o
 #
 
@@ -68,6 +69,10 @@ obj/tp_poisson1D_direct.o: $(TPDIRSRC)/tp_poisson1D_direct.c
 	@mkdir -p obj
 	$(CC) $(OPTC) -o $@ -c $(INCL) $(TPDIRSRC)/tp_poisson1D_direct.c  
 
+obj/test.o: $(TPDIRSRC)/test.c
+	@mkdir -p obj
+	$(CC) $(OPTC) -o $@ -c $(INCL) $(TPDIRSRC)/test.c
+
 bin/tp_testenv: $(OBJENV) 
 	@mkdir -p bin
 	$(CC) -o bin/tp_testenv $(OPTC) $(OBJENV) $(LIBS)
@@ -80,6 +85,10 @@ bin/tpPoisson1D_direct: $(OBJTP2DIRECT)
 	@mkdir -p bin
 	$(CC) -o bin/tpPoisson1D_direct $(OPTC) $(OBJTP2DIRECT) $(LIBS)
 
+bin/test_function: $(OBJTEST)
+	@mkdir -p bin
+	$(CC) -o bin/test_function $(OPTC) $(OBJTEST) $(LIBS)
+
 run_testenv:
 	bin/tp_testenv
 
@@ -88,6 +97,9 @@ run_tpPoisson1D_iter:
 
 run_tpPoisson1D_direct:
 	bin/tpPoisson1D_direct
+
+run_test_function:
+	bin/test_function
 
 clean:
 	rm obj/* bin/*

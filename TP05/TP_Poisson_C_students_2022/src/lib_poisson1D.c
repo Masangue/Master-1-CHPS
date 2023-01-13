@@ -176,29 +176,81 @@ void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, in
 
 }
 
-void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
-
+/*
+    Extract the D matrix from the AB matrix for Jacobi method
+*/
+void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv)
+{
+    // extract the diagonal matrix D from AB
+    for (int ii=0;ii<(*la);ii++)
+    { 
+        for (int jj=0;jj<(*kv);jj++)
+        {
+            MB[ii * (*lab) + jj] = 0.0;
+        }
+        MB[ii * (*lab) + (*kv)    ] = 0.0;
+        MB[ii * (*lab) + (*kv) + 1] = AB[ii * (*lab) + (*kv) + 1];
+        MB[ii * (*lab) + (*kv) + 2] = 0.0;
+    }
 }
 
-void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
-
+/*
+    Extract the D-E matrix from the AB matrix for Gauss-Seidel method
+*/
+void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv)
+{
+    // extract the lower triangular matrix D-E from AB
+    for (int ii=0;ii<(*la);ii++)
+    { 
+        for (int jj=0;jj<(*kv);jj++)
+        {
+            MB[ii * (*lab) + jj] = 0.0;
+        }
+        MB[ii * (*lab) + (*kv)    ] = 0.0;
+        MB[ii * (*lab) + (*kv) + 1] = AB[ii * (*lab) + (*kv) + 1];  // D matrix
+        MB[ii * (*lab) + (*kv) + 2] = -AB[ii * (*lab) + (*kv) + 2]; // -E matrix
+    }
 }
 
+
+/*
+    Algoritme itératif par Méthode de Richardson
+
+    @param resvec : vecteur des résidus relatifs à chaque itération
+*/
 void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite)
 {
     double *temp_vec = (double*)malloc((*la)*sizeof(double));
-    
+    double norm_RHS = cblas_dnrm2((*la), RHS, 1); 
+    double norm_bmAx = 0.0;
+
+    // factorise the matrix MB in LU for inversion
+    int info = 0;
+    int nrhs = 1;
+    int ku_local = 0;
+
+    int *ipiv = (int*)malloc((*la)*sizeof(int));
+    double *MB_LU = (double*)malloc((*la)*(*lab)*sizeof(double));
+    cblas_dcopy((*la)*(*lab), MB, 1, MB_LU, 1);
+
+    dgbtrf_(la, la, kl, &ku_local, MB_LU, lab, ipiv, &info);
+
+    // compute the norm of the residual at step 0
     cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), 1.0, AB, (*lab), X, 1, 0.0, temp_vec, 1);  // compute A.X_0
     cblas_daxpy((*la), -1.0, RHS, 1, temp_vec, 1); // compute -b+A.X_0 result
     resvec[0] = cblas_dnrm2((*la), temp_vec, 1);   // compute norm of b+A.X_0 (=norm -b+A.X_0)
 
     for (int kk=1;(kk<(*maxit) && resvec[kk-1]>(*tol));kk++)
     {
-        cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), -1.0, MB, (*lab), temp_vec, 1, 1.0, X, 1);  // compute X_kk = -1*M^-1.(b+A.X_kk-1) + X_kk-1    
-
+        // compute the solution at step kk
+        dgbtrs_("N", la, kl, &ku_local, &nrhs, MB_LU, lab, ipiv, temp_vec, la, &info, 1); // compute M^-1.(b+A.X_kk)
+        cblas_daxpy((*la), -1.0, temp_vec, 1, X, 1); // compute X_kk+1 = X_kk - M^-1.(b+A.X_kk)
+        
+        // compute the norm of the residual at step kk
         cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), 1.0, AB, (*lab), X, 1, 0.0, temp_vec, 1);  // compute A.X_kk
         cblas_daxpy((*la), -1.0, RHS, 1, temp_vec, 1); // compute -b+A.X_kk result
-        resvec[kk] = cblas_dnrm2((*la), temp_vec, 1);   // compute norm of b+A.X_kk (=norm -b+A.X_kk)
+        norm_bmAx = cblas_dnrm2((*la), temp_vec, 1);   // compute norm of b+A.X_kk (=norm -b+A.X_kk)
+        resvec[kk] =  norm_bmAx / norm_RHS;            // compute relative residual
     }
 }
 
