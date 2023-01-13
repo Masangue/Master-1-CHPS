@@ -68,7 +68,7 @@ obj/tp_poisson1D_direct.o: $(TPDIRSRC)/tp_poisson1D_direct.c
 	@mkdir -p obj
 	$(CC) $(OPTC) -o $@ -c $(INCL) $(TPDIRSRC)/tp_poisson1D_direct.c  
 
-bin/tp_testenv: $(OBJENV)
+bin/tp_testenv: $(OBJENV) 
 	@mkdir -p bin
 	$(CC) -o bin/tp_testenv $(OPTC) $(OBJENV) $(LIBS)
 

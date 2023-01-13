@@ -4,104 +4,83 @@
 /* Poisson problem (Heat equation)            */
 /**********************************************/
 #include "lib_poisson1D.h"
+#include "atlas_headers.h"
 
 /*
     Remplir le tableau 1D correspondant à la matrice poisson1D en general band, priorité colonne
 */
-void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv)
-{
-    int col;
-    for (int ii=0;ii<(*la);ii++)
-    {
-        col = ii*(*lab);
-        for (int jj=0;jj<(*kv);jj++)
-        {
-            AB[col + jj] = 0.0;
-        }
-        AB[col + (*kv)]     = -1.0;
-        AB[col + (*kv) + 1] = 2.0;
-        AB[col + (*kv) + 2] = -1.0;
+void set_GB_operator_colMajor_poisson1D(double* AB, int *lab, int *la, int *kv){
+  int ii, jj, kk;
+  for (jj=0;jj<(*la);jj++){
+    kk = jj*(*lab);
+    if (*kv>=0){
+      for (ii=0;ii< *kv;ii++){
+	AB[kk+ii]=0.0;
+      }
     }
-    AB[*kv] = 0.0;
-    AB[(*lab)*(*la)-1] = 0.0;
+    AB[kk+ *kv]=-1.0;
+    AB[kk+ *kv+1]=2.0;
+    AB[kk+ *kv+2]=-1.0;
+  }
+  AB[0]=0.0;
+  if (*kv == 1) {AB[1]=0;}
+  
+  AB[(*lab)*(*la)-1]=0.0;
 }
 
 /*
     Remplir le tableau 1D correspondant à la matrice identite en general band, priorité colonne
 */
-void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv)
-{
-    int col;
-    for (int ii=0;ii<(*la);ii++)
-    {
-        col = ii*(*lab);
-        for (int jj=0;jj<(*kv);jj++)
-        {
-            AB[col + jj] = 0.0;
-        }
-        AB[col + (*kv)]     = 0.0;
-        AB[col + (*kv) + 1] = 1.0;
-        AB[col + (*kv) + 2] = 0.0;
+void set_GB_operator_colMajor_poisson1D_Id(double* AB, int *lab, int *la, int *kv){
+  int ii, jj, kk;
+  for (jj=0;jj<(*la);jj++){
+    kk = jj*(*lab);
+    if (*kv>=0){
+      for (ii=0;ii< *kv;ii++){
+	AB[kk+ii]=0.0;
+      }
     }
+    AB[kk+ *kv]=0.0;
+    AB[kk+ *kv+1]=1.0;
+    AB[kk+ *kv+2]=0.0;
+  }
+  AB[1]=0.0;
+  AB[(*lab)*(*la)-1]=0.0;
 }
 
 /*
     Initialiser le vecteur RHS à 0 sauf aux extrémités qui valent les conditions aux limites BC0 et BC1
 */
-void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1)
-{
-    RHS[0] = *BC0;
-    RHS[(*la)-1] = *BC1;
-
-    for (int ii=1;ii<(*la)-1;ii++)
-    {
-        RHS[ii] = 0.0;
-    }
+void set_dense_RHS_DBC_1D(double* RHS, int* la, double* BC0, double* BC1){
+  int jj;
+  RHS[0]= *BC0;
+  RHS[(*la)-1]= *BC1;
+  for (jj=1;jj<(*la)-1;jj++){
+    RHS[jj]=0.0;
+  }
 }  
 
 /*
     Le sujet donne comme solution analytique T(x) = T0 + x(T1-T0)
 */
-void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1)
-{
-    
-    double f_diff = (*BC1)-(*BC0);
-  
-    for (int ii=0;ii<(*la);ii++)
-    {
-        EX_SOL[ii] = (*BC0) + f_diff*X[ii];
-    }
+void set_analytical_solution_DBC_1D(double* EX_SOL, double* X, int* la, double* BC0, double* BC1){
+  int jj;
+  double h, DELTA_T;
+  DELTA_T=(*BC1)-(*BC0);
+  for (jj=0;jj<(*la);jj++){
+    EX_SOL[jj] = (*BC0) + X[jj]*DELTA_T;
+  }
 }  
 
 /*
     Initialiser le vecteur X avec les points de discrétisation
 */
-void set_grid_points_1D(double* x, int* la)
-{
-  int n = (*la)+1;
-
-  for (int ii=0;ii<(*la);ii++)
-  {
-      x[ii] = (ii+1.0)/n;
-  }
-}
-
-void write_GB_operator_rowMajor_poisson1D(double* AB, int* lab, int* la, char* filename){
-  FILE * file;
-  int ii,jj;
-  file = fopen(filename, "w");
-  //Numbering from 1 to la
-  if (file != NULL){
-    for (ii=0;ii<(*lab);ii++){
-      for (jj=0;jj<(*la);jj++){
-	fprintf(file,"%lf\t",AB[ii*(*la)+jj]);
-      }
-      fprintf(file,"\n");
-    }
-    fclose(file);
-  }
-  else{
-    perror(filename);
+void set_grid_points_1D(double* x, int* la){
+  int jj;
+  double h;
+  h=1.0/(1.0*((*la)+1));
+  for (jj=0;jj<(*la);jj++){
+    x[jj]=(jj+1)*h;
   }
 }
 
@@ -178,8 +157,53 @@ void write_xy(double* vec, double* x, int* la, char* filename){
   } 
 }  
 
+void eig_poisson1D(double* eigval, int *la){
+}
+
+double eigmax_poisson1D(int *la){
+  return 0;
+}
+
+double eigmin_poisson1D(int *la){
+  return 0;
+}
+
+double richardson_alpha_opt(int *la){
+  return 0;
+}
+
+void richardson_alpha(double *AB, double *RHS, double *X, double *alpha_rich, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite){
+
+}
+
+void extract_MB_jacobi_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
+
+}
+
+void extract_MB_gauss_seidel_tridiag(double *AB, double *MB, int *lab, int *la,int *ku, int*kl, int *kv){
+
+}
+
+void richardson_MB(double *AB, double *RHS, double *X, double *MB, int *lab, int *la,int *ku, int*kl, double *tol, int *maxit, double *resvec, int *nbite)
+{
+    double *temp_vec = (double*)malloc((*la)*sizeof(double));
+    
+    cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), 1.0, AB, (*lab), X, 1, 0.0, temp_vec, 1);  // compute A.X_0
+    cblas_daxpy((*la), -1.0, RHS, 1, temp_vec, 1); // compute -b+A.X_0 result
+    resvec[0] = cblas_dnrm2((*la), temp_vec, 1);   // compute norm of b+A.X_0 (=norm -b+A.X_0)
+
+    for (int kk=1;(kk<(*maxit) && resvec[kk-1]>(*tol));kk++)
+    {
+        cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), -1.0, MB, (*lab), temp_vec, 1, 1.0, X, 1);  // compute X_kk = -1*M^-1.(b+A.X_kk-1) + X_kk-1    
+
+        cblas_dgbmv(CblasColMajor, CblasNoTrans, (*la), (*la), (*kl), (*ku), 1.0, AB, (*lab), X, 1, 0.0, temp_vec, 1);  // compute A.X_kk
+        cblas_daxpy((*la), -1.0, RHS, 1, temp_vec, 1); // compute -b+A.X_kk result
+        resvec[kk] = cblas_dnrm2((*la), temp_vec, 1);   // compute norm of b+A.X_kk (=norm -b+A.X_kk)
+    }
+}
+
 int indexABCol(int i, int j, int *lab){
-  return i*(*lab)+j;
+  return j*(*lab)+i;
 }
 
 /*

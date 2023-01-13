@@ -9,12 +9,10 @@ of Poisson 1D problem by direct method or iterative method.
 It is organized in three directories:
 src/ 
 include/
-obj/
 bin/
 
 "src" contains the source codes, "include" contains the 
-header files, "obj" contains the temporary object file  
-and "bin" contains the executables. 
+header files and "bin" contains the executables. 
 The compilation and execution can be done using the Makefile.
 
 Here are the principal targets: 
